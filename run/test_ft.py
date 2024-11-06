@@ -231,40 +231,43 @@ def test(model, dataset, visualizer, opt, bg_info, test_steps=0, gen_vid=True, l
 
         acc_dict = {}
         if "coarse_raycolor" in opt.test_color_loss_items:
-            loss = torch.nn.MSELoss().to("cuda")(torch.as_tensor(visuals["coarse_raycolor"], device="cuda").view(1, -1, 3), gt_image.view(1, -1, 3).cuda())
-            acc_dict.update({"coarse_raycolor": loss})
-            print("coarse_raycolor", loss, mse2psnr(loss))
+            pass
+            # loss = torch.nn.MSELoss().to("cuda")(torch.as_tensor(visuals["coarse_raycolor"], device="cuda").view(1, -1, 3), gt_image.view(1, -1, 3).cuda())
+            # acc_dict.update({"coarse_raycolor": loss})
+            # print("coarse_raycolor", loss, mse2psnr(loss))
 
         if "ray_mask" in model.output and "ray_masked_coarse_raycolor" in opt.test_color_loss_items:
-            masked_gt = tmpgts["gt_image"].view(1, -1, 3).cuda()[ray_masks,:].reshape(1, -1, 3)
-            ray_masked_coarse_raycolor = torch.as_tensor(visuals["coarse_raycolor"], device="cuda").view(1, -1, 3)[:,edge_mask,:][ray_masks,:].reshape(1, -1, 3)
-            loss = torch.nn.MSELoss().to("cuda")(ray_masked_coarse_raycolor, masked_gt)
-            acc_dict.update({"ray_masked_coarse_raycolor": loss})
-            visualizer.print_details("{} loss:{}, PSNR:{}".format("ray_masked_coarse_raycolor", loss, mse2psnr(loss)))
+            pass
+            # masked_gt = tmpgts["gt_image"].view(1, -1, 3).cuda()[ray_masks,:].reshape(1, -1, 3)
+            # ray_masked_coarse_raycolor = torch.as_tensor(visuals["coarse_raycolor"], device="cuda").view(1, -1, 3)[:,edge_mask,:][ray_masks,:].reshape(1, -1, 3)
+            # loss = torch.nn.MSELoss().to("cuda")(ray_masked_coarse_raycolor, masked_gt)
+            # acc_dict.update({"ray_masked_coarse_raycolor": loss})
+            # visualizer.print_details("{} loss:{}, PSNR:{}".format("ray_masked_coarse_raycolor", loss, mse2psnr(loss)))
 
         if "ray_depth_mask" in model.output and "ray_depth_masked_coarse_raycolor" in opt.test_color_loss_items:
-            ray_depth_masks = model.output["ray_depth_mask"].reshape(model.output["ray_depth_mask"].shape[0], -1)
-            masked_gt = torch.masked_select(tmpgts["gt_image"].view(1, -1, 3).cuda(), (ray_depth_masks[..., None].expand(-1, -1, 3)).reshape(1, -1, 3))
-            ray_depth_masked_coarse_raycolor = torch.masked_select(torch.as_tensor(visuals["coarse_raycolor"], device="cuda").view(1, -1, 3), ray_depth_masks[..., None].expand(-1, -1, 3).reshape(1, -1, 3))
+            pass
+            # ray_depth_masks = model.output["ray_depth_mask"].reshape(model.output["ray_depth_mask"].shape[0], -1)
+            # masked_gt = torch.masked_select(tmpgts["gt_image"].view(1, -1, 3).cuda(), (ray_depth_masks[..., None].expand(-1, -1, 3)).reshape(1, -1, 3))
+            # ray_depth_masked_coarse_raycolor = torch.masked_select(torch.as_tensor(visuals["coarse_raycolor"], device="cuda").view(1, -1, 3), ray_depth_masks[..., None].expand(-1, -1, 3).reshape(1, -1, 3))
 
-            loss = torch.nn.MSELoss().to("cuda")(ray_depth_masked_coarse_raycolor, masked_gt)
-            acc_dict.update({"ray_depth_masked_coarse_raycolor": loss})
-            visualizer.print_details("{} loss:{}, PSNR:{}".format("ray_depth_masked_coarse_raycolor", loss, mse2psnr(loss)))
+            # loss = torch.nn.MSELoss().to("cuda")(ray_depth_masked_coarse_raycolor, masked_gt)
+            # acc_dict.update({"ray_depth_masked_coarse_raycolor": loss})
+            # visualizer.print_details("{} loss:{}, PSNR:{}".format("ray_depth_masked_coarse_raycolor", loss, mse2psnr(loss)))
         print(acc_dict.items())
         visualizer.accumulate_losses(acc_dict)
         count+=1
 
-    visualizer.print_losses(count)
-    psnr = visualizer.get_psnr(opt.test_color_loss_items[0])
+    # visualizer.print_losses(count)
+    # psnr = visualizer.get_psnr(opt.test_color_loss_items[0])
     print('--------------------------------Finish Test Rendering--------------------------------')
-    report_metrics(visualizer.image_dir, visualizer.image_dir, visualizer.image_dir, ["psnr", "ssim", "lpips", "vgglpips", "rmse"] if lpips else ["psnr", "ssim", "rmse"], [i for i in range(0, total_num, opt.test_num_step)], imgStr="step-%04d-{}.png".format(opt.visual_items[0]),gtStr="step-%04d-{}.png".format(opt.visual_items[1]))
+    # report_metrics(visualizer.image_dir, visualizer.image_dir, visualizer.image_dir, ["psnr", "ssim", "lpips", "vgglpips", "rmse"] if lpips else ["psnr", "ssim", "rmse"], [i for i in range(0, total_num, opt.test_num_step)], imgStr="step-%04d-{}.png".format(opt.visual_items[0]),gtStr="step-%04d-{}.png".format(opt.visual_items[1]))
     print('--------------------------------Finish Evaluation--------------------------------')
     if gen_vid:
         del dataset
         visualizer.gen_video("coarse_raycolor", range(0, total_num, opt.test_num_step), test_steps)
         print('--------------------------------Finish generating vid--------------------------------')
-    return psnr
-
+    # return psnr
+    return None
 
 def get_latest_epoch(resume_dir):
     os.makedirs(resume_dir, exist_ok=True)

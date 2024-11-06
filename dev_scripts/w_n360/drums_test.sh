@@ -28,7 +28,7 @@ vscale=" 2 2 2 "
 kernel_size=" 3 3 3 "
 query_size=" 3 3 3 "
 vsize=" 0.004 0.004 0.004 " #" 0.005 0.005 0.005 "
-wcoord_query=1
+wcoord_query=-1
 z_depth_dim=400
 max_o=400000 #2000000
 ranges=" -1.126 -0.746 -0.492 1.122 0.962 0.939 "
@@ -81,7 +81,7 @@ random_sample='random'
 random_sample_size=60 #48 # 32 * 32 = 1024
 batch_size=1
 
-gpu_ids='1'
+gpu_ids='0'
 checkpoints_dir="${nrCheckpoint}/nerfsynth/"
 resume_dir="${nrCheckpoint}/init/dtu_dgt_d012_img0123_conf_agg2_32_dirclr20"
 

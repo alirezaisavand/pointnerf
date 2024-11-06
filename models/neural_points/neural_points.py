@@ -1,11 +1,12 @@
 import torch
 import torch.nn as nn
 
-from data.load_blender import load_blender_cloud
+from pointnerf.data.load_blender import load_blender_cloud
 import numpy as np
 from ..helpers.networks import init_seq, positional_encoding
 import matplotlib.pyplot as plt
 import torch.nn.utils.prune as prune_param
+
 
 class NeuralPoints(nn.Module):
 
@@ -237,7 +238,7 @@ class NeuralPoints(nn.Module):
         self.grid_vox_sz = 0
         self.points_conf, self.points_dir, self.points_color, self.eulers, self.Rw2c = None, None, None, None, None
         self.device=device
-        if self.opt.load_points ==1:
+        if self.opt.load_points == 1:
             saved_features = None
             if checkpoint:
                 saved_features = torch.load(checkpoint, map_location=device)
@@ -246,19 +247,19 @@ class NeuralPoints(nn.Module):
             else:
                 point_xyz, _ = load_blender_cloud(self.opt.cloud_path, self.opt.num_point)
                 point_xyz = torch.as_tensor(point_xyz, device=device, dtype=torch.float32)
-                if len(opt.point_noise) > 0:
-                    spl = opt.point_noise.split("_")
-                    if float(spl[1]) > 0.0:
-                        func = getattr(self, spl[0], None)
-                        point_xyz = func(point_xyz, float(spl[1]))
-                        print("point_xyz shape after jittering: ", point_xyz.shape)
+                # if len(opt.point_noise) > 0:
+                #     spl = opt.point_noise.split("_")
+                #     if float(spl[1]) > 0.0:
+                #         func = getattr(self, spl[0], None)
+                #         point_xyz = func(point_xyz, float(spl[1]))
+                #         print("point_xyz shape after jittering: ", point_xyz.shape)
                 print('&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& Loaded blender cloud ', self.opt.cloud_path, self.opt.num_point, point_xyz.shape)
 
                 # filepath = "./aaaaaaaaaaaaa_cloud.txt"
                 # np.savetxt(filepath, self.xyz.reshape(-1, 3).detach().cpu().numpy(), delimiter=";")
 
-                if self.opt.construct_res > 0:
-                    point_xyz, sparse_grid_idx, self.full_grid_idx = self.construct_grid_points(point_xyz)
+                # if self.opt.construct_res > 0:
+                #     point_xyz, sparse_grid_idx, self.full_grid_idx = self.construct_grid_points(point_xyz)
                 self.xyz = nn.Parameter(point_xyz)
 
                 # filepath = "./grid_cloud.txt"
@@ -266,7 +267,8 @@ class NeuralPoints(nn.Module):
                 # print("max counts", torch.max(torch.unique(point_xyz, return_counts=True, dim=0)[1]))
                 print("point_xyz", point_xyz.shape)
 
-            self.xyz.requires_grad = opt.xyz_grad > 0
+            # self.xyz.requires_grad = opt.xyz_grad > 0
+            self.xyz.requires_grad = False
             shape = 1, self.xyz.shape[0], num_channels
             # filepath = "./aaaaaaaaaaaaa_cloud.txt"
             # np.savetxt(filepath, self.xyz.reshape(-1, 3).detach().cpu().numpy(), delimiter=";")
@@ -283,7 +285,11 @@ class NeuralPoints(nn.Module):
                 # print("self.points_conf",self.points_conf)
 
                 self.points_dir = nn.Parameter(saved_features["neural_points.points_dir"]) if "neural_points.points_dir" in saved_features else None
-                self.points_color = nn.Parameter(saved_features["neural_points.points_color"]) if "neural_points.points_color" in saved_features else None
+                # self.points_color = nn.Parameter(saved_features["neural_points.points_color"]) if "neural_points.points_color" in saved_features else None
+                colors = saved_features["neural_points.points_color"]
+                colors = (colors - colors.min()) / (colors.max() - colors.min())
+                self.points_color = nn.Parameter(colors) if "neural_points.points_color" in saved_features else None
+
                 self.eulers = nn.Parameter(saved_features["neural_points.eulers"]) if "neural_points.eulers" in saved_features else None
                 self.Rw2c = nn.Parameter(saved_features["neural_points.Rw2c"]) if "neural_points.Rw2c" in saved_features else torch.eye(3, device=self.xyz.device, dtype=self.xyz.dtype)
             else:
@@ -393,7 +399,7 @@ class NeuralPoints(nn.Module):
         if self.eulers is not None and self.eulers.dim() > 1:
             self.eulers = nn.Parameter(torch.cat([self.eulers, add_eulers[None,...]], dim=1))
             self.eulers.requires_grad = False
-            
+
         if self.Rw2c is not None and self.Rw2c.dim() > 2:
             self.Rw2c = nn.Parameter(torch.cat([self.Rw2c, add_Rw2c[None,...]], dim=1))
             self.Rw2c.requires_grad = False
@@ -702,6 +708,12 @@ class NeuralPoints(nn.Module):
         # 1, 294, 24, 32;   1, 294, 24;     1, 291, 2
 
         sample_pidx, sample_loc, ray_mask_tensor, point_xyz_pers_tensor, sample_loc_w_tensor, sample_ray_dirs_tensor, vsize = self.get_point_indices(inputs, camrotc2w, campos, pixel_idx, torch.min(near_plane).cpu().numpy(), torch.max(far_plane).cpu().numpy(), torch.max(h).cpu().numpy(), torch.max(w).cpu().numpy(), intrinsic.cpu().numpy()[0], vox_query=self.opt.NN<0)
+        decoded_features, ray_valid, weight, conf_coefficient = self.aggregator(sampled_color, sampled_Rw2c,
+                                                                                sampled_dir, sampled_conf,
+                                                                                sampled_embedding, sampled_xyz_pers,
+                                                                                sampled_xyz, sample_pnt_mask,
+                                                                                sample_loc, sample_loc_w,
+                                                                                sample_ray_dirs, vsize, grid_vox_sz)
 
         sample_pnt_mask = sample_pidx >= 0
         B, R, SR, K = sample_pidx.shape

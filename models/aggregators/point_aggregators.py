@@ -3,7 +3,7 @@ import torch.nn as nn
 import numpy as np
 import torch.nn.functional as F
 from ..helpers.networks import init_seq, positional_encoding
-from utils.spherical import SphericalHarm_table as SphericalHarm
+from pointnerf.utils.spherical import SphericalHarm_table as SphericalHarm
 from ..helpers.geometrics import compute_world2local_dist
 
 
@@ -569,7 +569,7 @@ class PointAggregator(torch.nn.Module):
                     ori_viewdirs = ori_viewdirs[pnt_mask_flat, :]
                 feat = torch.cat([feat, sampled_dir - ori_viewdirs, torch.sum(sampled_dir*ori_viewdirs, dim=-1, keepdim=True)], dim=-1)
             feat = self.block3(feat)
-
+        color_in_holder = None
         if self.opt.agg_intrp_order == 1:
 
             if self.opt.apply_pnt_mask > 0:
@@ -625,12 +625,14 @@ class PointAggregator(torch.nn.Module):
             else:
                 feat_holder = feat
             feat = feat_holder.view(B * R * SR, K, feat_holder.shape[-1])
+            print('weight:', weight.shape)
             feat = torch.sum(feat * weight, dim=-2).view([-1, feat.shape[-1]])[ray_valid, :]
 
             color_in = feat
             if self.opt.agg_color_xyz_mode != "None":
                 color_in = torch.cat([color_in, pts], dim=-1)
-
+            #copy color_in to color_in_holder
+            color_in_holder = color_in.clone()
             color_in = torch.cat([color_in, viewdirs], dim=-1)
             color_output = self.raw2out_color(self.color_branch(color_in))
             # color_output = torch.sigmoid(color_output)
@@ -641,7 +643,7 @@ class PointAggregator(torch.nn.Module):
             # print("output_placeholder", output_placeholder.shape)
         output_placeholder = torch.zeros([total_len, self.opt.shading_color_channel_num + 1], dtype=torch.float32, device=output.device)
         output_placeholder[ray_valid] = output
-        return output_placeholder, None
+        return color_in_holder, output_placeholder, None
 
     def print_point(self, dists, sample_loc_w, sampled_xyz, sample_loc, sampled_xyz_pers, sample_pnt_mask):
 
@@ -807,9 +809,9 @@ class PointAggregator(torch.nn.Module):
         conf_coefficient = 1
         if sampled_conf is not None:
             conf_coefficient = self.gradiant_clamp(sampled_conf[..., 0], min=0.0001, max=1)
-
-        output, _ = getattr(self, self.which_agg_model, None)(sampled_color, sampled_Rw2c, sampled_dir, sampled_conf, sampled_embedding, sampled_xyz_pers, sampled_xyz, sample_pnt_mask, sample_loc, sample_loc_w, sample_ray_dirs, vsize, weight * conf_coefficient, pnt_mask_flat, pts, viewdirs, total_len, ray_valid, in_shape, dists)
-        if (self.opt.sparse_loss_weight <=0) and ("conf_coefficient" not in self.opt.zero_one_loss_items) and self.opt.prob == 0:
-            weight, conf_coefficient = None, None
-        return output.view(in_shape[:-1] + (self.opt.shading_color_channel_num + 1,)), ray_valid.view(in_shape[:-1]), weight, conf_coefficient
+        # print('weight:', weight.shape, 'conf coefficient:', conf_coefficient)
+        color_in, output, _ = getattr(self, self.which_agg_model, None)(sampled_color, sampled_Rw2c, sampled_dir, sampled_conf, sampled_embedding, sampled_xyz_pers, sampled_xyz, sample_pnt_mask, sample_loc, sample_loc_w, sample_ray_dirs, vsize, weight * conf_coefficient, pnt_mask_flat, pts, viewdirs, total_len, ray_valid, in_shape, dists)
+        # if (self.opt.sparse_loss_weight <=0) and ("conf_coefficient" not in self.opt.zero_one_loss_items) and self.opt.prob == 0:
+        #     weight, conf_coefficient = None, None
+        return color_in, output.view(in_shape[:-1] + (self.opt.shading_color_channel_num + 1,)), ray_valid.view(in_shape[:-1]), weight, conf_coefficient
 

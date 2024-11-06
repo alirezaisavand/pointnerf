@@ -8,7 +8,7 @@ except:
     from skimage.metrics import peak_signal_noise_ratio as compare_psnr
 
     def compare_ssim(gt, img, win_size, multichannel=True):
-        return structural_similarity(gt, img, win_size=win_size, multichannel=multichannel)
+        return structural_similarity(gt, img, win_size=win_size, channel_axis=2, data_range=1.0)
 
 
 import torch

@@ -10,9 +10,9 @@ import matplotlib.pyplot as plt
 import torch
 import pickle
 import time
-from models.rendering.diff_ray_marching import near_far_linear_ray_generation, near_far_disparity_linear_ray_generation
+from pointnerf.models.rendering.diff_ray_marching import near_far_linear_ray_generation, near_far_disparity_linear_ray_generation
 
-from data.load_blender import load_blender_data
+from pointnerf.data.load_blender import load_blender_data
 
 # X = torch.cuda.FloatTensor(8)
 

@@ -372,7 +372,17 @@ class NerfSynth360FtDataset(BaseDataset):
         # np.savetxt("/home/xharlie/user_space/codes/testNr/checkpoints/pcolallship360_load_confcolordir_KNN8_LRelu_grid320_333_agg2_prl2e3_prune1e4/points/save.txt", points_xyz.cpu().numpy(), delimiter=";")
         return points_xyz
 
+    def stack(self, matrix):
+        A_mats = [mat[0] for mat in matrix]
+        B_mats = [mat[1] for mat in matrix]
 
+        # Stacking them separately
+        A_stacked = np.stack(A_mats)
+        B_stacked = np.stack(B_mats)
+
+        # Combining them into a single array of tuples
+        combined_proj_mats = [(A_stacked[i], B_stacked[i]) for i in range(len(A_stacked))]
+        return combined_proj_mats
 
     def build_proj_mats(self, meta=None, list=None, norm_w2c=None, norm_c2w=None):
         proj_mats, intrinsics, world2cams, cam2worlds = [], [], [], []
@@ -399,8 +409,8 @@ class NerfSynth360FtDataset(BaseDataset):
             intrinsic[:2] = intrinsic[:2] / 4
             proj_mat_l[:3, :4] = intrinsic @ w2c[:3, :4]
             proj_mats += [(proj_mat_l, self.near_far)]
-
-        proj_mats, intrinsics = np.stack(proj_mats), np.stack(intrinsics)
+        proj_mats = self.stack(proj_mats)
+        intrinsics = np.stack(intrinsics)
         world2cams, cam2worlds = np.stack(world2cams), np.stack(cam2worlds)
         return proj_mats, intrinsics, world2cams, cam2worlds
 

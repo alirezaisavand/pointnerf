@@ -246,7 +246,7 @@ class NeuralPointsRayMarching(nn.Module):
         self.return_depth = is_compute_depth
         self.return_color = True
         self.opt = opt
-        self.neural_points = neural_points
+        self. neural_points = neural_points
 
 
     def forward(self,
@@ -268,6 +268,23 @@ class NeuralPointsRayMarching(nn.Module):
         sampled_color, sampled_Rw2c, sampled_dir, sampled_conf, sampled_embedding, sampled_xyz_pers, sampled_xyz, sample_pnt_mask, sample_loc, sample_loc_w, sample_ray_dirs, ray_mask_tensor, vsize, grid_vox_sz = self.neural_points({"pixel_idx": pixel_idx, "camrotc2w": camrotc2w, "campos": campos, "near": near, "far": far,"focal": focal, "h": h, "w": w, "intrinsic": intrinsic,"gt_image":gt_image, "raydir":raydir})
 
         decoded_features, ray_valid, weight, conf_coefficient = self.aggregator(sampled_color, sampled_Rw2c, sampled_dir, sampled_conf, sampled_embedding, sampled_xyz_pers, sampled_xyz, sample_pnt_mask, sample_loc, sample_loc_w, sample_ray_dirs, vsize, grid_vox_sz)
+
+        if weight is not None:
+            # print('weight:', weight.shape, 'conf:', conf_coefficient.shape, 'sampled color:', sampled_color.shape)
+            total_weight = weight * conf_coefficient
+            # print('total weight range:', torch.min(total_weight), torch.max(total_weight))
+            # normalized_sampled_color = (sampled_color - sampled_color.min()) / (sampled_color.max() - sampled_color.min())
+            weighted_colors = total_weight.unsqueeze(-1) * sampled_color  # Shape: [A, B, C, D, 3]
+            # print('weighted colors range:', torch.min(weighted_colors), torch.max(weighted_colors))
+            weighted_sum_colors = weighted_colors.sum(dim=3)  # Shape: [A, B, C, 3]
+            # print('weighted sum colors range:', torch.min(weighted_sum_colors), torch.max(weighted_sum_colors))
+            sum_weights = total_weight.sum(dim=3, keepdim=True)  # Shape: [A, B, C, 1]
+            # print('sum weights range:', torch.min(sum_weights), torch.max(sum_weights))
+            average_colors = torch.where(sum_weights > 0, weighted_sum_colors / sum_weights, torch.zeros_like(weighted_sum_colors))
+            # print('average color range:', torch.min(average_colors), torch.max(average_colors), average_colors.shape)
+            # print('decoded features before:', torch.min(decoded_features[..., 1:4]), torch.max(decoded_features[..., 1:4]))
+            decoded_features[..., 1:4] = average_colors
+            # print('decoded features after:', torch.min(decoded_features[..., 1:4]), torch.max(decoded_features[..., 1:4]))
         ray_dist = torch.cummax(sample_loc[..., 2], dim=-1)[0]
         ray_dist = torch.cat([ray_dist[..., 1:] - ray_dist[..., :-1], torch.full((ray_dist.shape[0], ray_dist.shape[1], 1), vsize[2], device=ray_dist.device)], dim=-1)
 
@@ -314,6 +331,8 @@ class NeuralPointsRayMarching(nn.Module):
                 background_transmission,
                 _,
             ) = alpha_ray_march(ray_dist, ray_valid, decoded_features, self.blend_func)
+        # if torch.numel(ray_color) > 0:
+            # print('ray color range:', torch.min(ray_color), torch.max(ray_color), ray_color.shape)
 
         if self.return_depth:
             alpha_blend_weight = opacity * acc_transmission

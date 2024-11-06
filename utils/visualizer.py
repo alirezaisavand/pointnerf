@@ -18,7 +18,8 @@ def save_image(img_array, filepath):
                                          and img_array.shape[2] in [3, 4])
 
     if img_array.dtype != np.uint8:
-        img_array = (np.clip(img_array, 0, 1) * 255).astype(np.uint8)
+        img_array = (img_array - np.min(img_array)) / (np.max(img_array) - np.min(img_array))
+        img_array = (img_array * 255).astype(np.uint8)
     os.makedirs(os.path.dirname(filepath), exist_ok=True)
     Image.fromarray(img_array).save(filepath)
 
@@ -70,16 +71,27 @@ class Visualizer:
         for name, img in visuals.items():
             if opt is not None and name in opt.visual_items:
                 img = np.array(img)
-                filename = 'step-{:04d}-{}.png'.format(total_steps, name)
+                img = (img - img)
+                if isinstance(total_steps,str):
+                    filename = 'step-{}-{}.png'.format(total_steps, name)
+                else:
+                    filename = 'step-{:04d}-{}.png'.format(total_steps, name)
+
                 filepath = os.path.join(self.image_dir, filename)
                 save_image(img, filepath)
 
     def display_video(self, visual_lst, total_steps):
         for name in visual_lst[0].keys():
             stacked_imgs = [to8b(visuals[name]) for visuals in visual_lst]
-            filename = 'video_{:04d}_{}.mov'.format(total_steps, name)
+            if isinstance(total_steps,str):
+                filename = 'step-{}-{}.png'.format(total_steps, name)
+            else:
+                filename = 'step-{:04d}-{}.png'.format(total_steps, name)
             imageio.mimwrite(os.path.join(self.vid_dir, filename), stacked_imgs, fps=5, quality=8)
-            filename = 'video_{:04d}_{}.gif'.format(total_steps, name)
+            if isinstance(total_steps,str):
+                filename = 'step-{}-{}.png'.format(total_steps, name)
+            else:
+                filename = 'step-{:04d}-{}.png'.format(total_steps, name)
             imageio.mimwrite(os.path.join(self.vid_dir, filename), stacked_imgs, fps=5, format='GIF')
 
     def gen_video(self, name, steps, total_step):
@@ -89,9 +101,15 @@ class Visualizer:
             img_arry = self.read_image(img_filepath, dtype=np.float32)
             img_lst.append(img_arry)
         stacked_imgs = [to8b(img_arry) for img_arry in img_lst]
-        filename = 'video_{:04d}_{}.mov'.format(total_step, name)
+        if isinstance(total_step,str):
+            filename = 'step-{}-{}.png'.format(total_step, name)
+        else:
+            filename = 'step-{:04d}-{}.png'.format(total_step, name)
         imageio.mimwrite(os.path.join(self.vid_dir, filename), stacked_imgs, fps=20, quality=10)
-        filename = 'video_{:04d}_{}.gif'.format(total_step, name)
+        if isinstance(total_step,str):
+            filename = 'step-{}-{}.png'.format(total_step, name)
+        else:
+            filename = 'step-{:04d}-{}.png'.format(total_step, name)
         imageio.mimwrite(os.path.join(self.vid_dir, filename), stacked_imgs, fps=5, format='GIF')
 
     def save_neural_points(self, total_steps, xyz, features, data, save_ref=0):
