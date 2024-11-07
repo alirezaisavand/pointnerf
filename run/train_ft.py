@@ -606,7 +606,7 @@ def main():
 
             resume_dir = os.path.join(opt.checkpoints_dir, opt.name)
             if opt.resume_iter == "best":
-                opt.resume_iter = "latest"
+            opt.resume_iter = "latest"
             resume_iter = opt.resume_iter if opt.resume_iter != "latest" else get_latest_epoch(resume_dir)
             if resume_iter is None:
                 epoch_count = 1

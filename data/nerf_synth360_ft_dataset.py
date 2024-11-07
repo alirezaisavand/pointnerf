@@ -16,7 +16,7 @@ from torch.utils.data import Dataset, DataLoader
 import torch
 import h5py
 
-from data.base_dataset import BaseDataset
+from pointnerf.data.base_dataset import BaseDataset
 import configparser
 
 from os.path import join
@@ -327,6 +327,7 @@ class NerfSynth360FtDataset(BaseDataset):
             camposes.append(campos)
             centerdirs.append(raydir)
         camposes = np.stack(camposes, axis=0)  # 2091, 3
+        camposes = np.stack(camposes, axis=0)  # 2091, 3
         centerdirs = np.concatenate(centerdirs, axis=0)  # 2091, 3
         # print("camposes", camposes.shape, centerdirs.shape)
         return torch.as_tensor(camposes, device="cuda", dtype=torch.float32), torch.as_tensor(centerdirs, device="cuda",
@@ -354,8 +355,8 @@ class NerfSynth360FtDataset(BaseDataset):
 
 
     def load_init_points(self):
-        points_path = os.path.join(self.data_dir, self.scan, "colmap_results/dense/fused.ply")
-        # points_path = os.path.join(self.data_dir, self.scan, "exported/pcd_te_1_vs_0.01_jit.ply")
+        # points_path = os.path.join(self.data_dir, self.scan, "colmap_results/dense/fused.ply")
+        points_path = "/home/NeRO/data/point_cloud.ply"
         assert os.path.exists(points_path)
         plydata = PlyData.read(points_path)
         # plydata (PlyProperty('x', 'double'), PlyProperty('y', 'double'), PlyProperty('z', 'double'), PlyProperty('nx', 'double'), PlyProperty('ny', 'double'), PlyProperty('nz', 'double'), PlyProperty('red', 'uchar'), PlyProperty('green', 'uchar'), PlyProperty('blue', 'uchar'))

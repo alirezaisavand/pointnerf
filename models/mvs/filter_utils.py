@@ -8,7 +8,7 @@ import copy
 import torch
 import numpy as np
 import time
-from models.mvs import mvs_utils
+from pointnerf.models.mvs import mvs_utils
 from tqdm import tqdm
 
 import cv2

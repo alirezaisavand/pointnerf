@@ -3,9 +3,10 @@ import torch.utils.data
 import sys
 sys.path.append("../")
 from pointnerf.utils.ncg_string import underscore2camelcase
-from .base_dataset import BaseDataset
+from pointnerf.data.base_dataset import BaseDataset
 import numpy as np
 import time
+import os
 
 def find_dataset_class_by_name(name):
     '''
@@ -20,7 +21,7 @@ def find_dataset_class_by_name(name):
     the module.
     '''
     cls_name = underscore2camelcase(name) + 'Dataset'
-    filename = "data.{}_dataset".format(name)
+    filename = "pointnerf.data.{}_dataset".format(name)
     module = importlib.import_module(filename)
 
     assert cls_name in module.__dict__, 'Cannot find dataset class name "{}" in "{}"'.format(
