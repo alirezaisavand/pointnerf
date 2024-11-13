@@ -527,7 +527,7 @@ class PointAggregator(torch.nn.Module):
             if self.opt.dist_xyz_freq != 0:
                 # print(dists.dtype, (self.opt.dist_xyz_deno * np.linalg.norm(vsize)).dtype, dists_flat.dtype)
                 dists_flat = positional_encoding(dists_flat, self.opt.dist_xyz_freq)
-            feat= sampled_embedding.view(-1, sampled_embedding.shape[-1])
+            feat = sampled_embedding.view(-1, sampled_embedding.shape[-1])
             # print("feat", feat.shape)
 
             if self.opt.apply_pnt_mask > 0:

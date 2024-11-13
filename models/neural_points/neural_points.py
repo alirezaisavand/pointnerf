@@ -708,12 +708,7 @@ class NeuralPoints(nn.Module):
         # 1, 294, 24, 32;   1, 294, 24;     1, 291, 2
 
         sample_pidx, sample_loc, ray_mask_tensor, point_xyz_pers_tensor, sample_loc_w_tensor, sample_ray_dirs_tensor, vsize = self.get_point_indices(inputs, camrotc2w, campos, pixel_idx, torch.min(near_plane).cpu().numpy(), torch.max(far_plane).cpu().numpy(), torch.max(h).cpu().numpy(), torch.max(w).cpu().numpy(), intrinsic.cpu().numpy()[0], vox_query=self.opt.NN<0)
-        decoded_features, ray_valid, weight, conf_coefficient = self.aggregator(sampled_color, sampled_Rw2c,
-                                                                                sampled_dir, sampled_conf,
-                                                                                sampled_embedding, sampled_xyz_pers,
-                                                                                sampled_xyz, sample_pnt_mask,
-                                                                                sample_loc, sample_loc_w,
-                                                                                sample_ray_dirs, vsize, grid_vox_sz)
+
 
         sample_pnt_mask = sample_pidx >= 0
         B, R, SR, K = sample_pidx.shape
@@ -728,15 +723,4 @@ class NeuralPoints(nn.Module):
 
         sampled_Rw2c = self.Rw2c if self.Rw2c.dim() == 2 else torch.index_select(self.Rw2c, 0, sample_pidx).view(B, R, SR, K, self.Rw2c.shape[1], self.Rw2c.shape[2])
 
-        # filepath = "./sampled_xyz_full.txt"
-        # np.savetxt(filepath, self.xyz.reshape(-1, 3).detach().cpu().numpy(), delimiter=";")
-        #
-        # filepath = "./sampled_xyz_pers_full.txt"
-        # np.savetxt(filepath, point_xyz_pers_tensor.reshape(-1, 3).detach().cpu().numpy(), delimiter=";")
-
-        # if self.xyz.grad is not None:
-        #     print("xyz grad:", self.xyz.requires_grad, torch.max(self.xyz.grad), torch.min(self.xyz.grad))
-        # if self.points_embeding.grad is not None:
-        #     print("points_embeding grad:", self.points_embeding.requires_grad, torch.max(self.points_embeding.grad))
-        # print("points_embeding 3", torch.max(self.points_embeding), torch.min(self.points_embeding))
         return sampled_color, sampled_Rw2c, sampled_dir, sampled_conf, sampled_embedding[..., 6:], sampled_embedding[..., 3:6], sampled_embedding[..., :3], sample_pnt_mask, sample_loc, sample_loc_w_tensor, sample_ray_dirs_tensor, ray_mask_tensor, vsize, self.grid_vox_sz
