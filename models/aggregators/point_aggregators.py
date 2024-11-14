@@ -565,9 +565,7 @@ class PointAggregator(torch.nn.Module):
                 feat = torch.cat([feat, pts], dim=-1)
             if self.opt.agg_intrp_order > 0:
                 feat = torch.cat([feat, dists_flat], dim=-1)
-                print('feat6:', feat.shape)
             feat = self.block2(feat)
-            print('feat7:', feat.shape)
 
         if self.opt.shading_feature_mlp_layer3>0:
             if sampled_color is not None:
