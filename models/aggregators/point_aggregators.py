@@ -427,9 +427,10 @@ class PointAggregator(torch.nn.Module):
             weights = 1. / torch.clamp(torch.norm(dists[..., :3], dim=-1), min= 1e-6)
         else:
             weights = 1. / torch.clamp(torch.sqrt(torch.sum(torch.square(dists[...,:2]), dim=-1)) * axis_weight[..., 0] + torch.abs(dists[...,2]) * axis_weight[..., 1], min= 1e-6)
-        print('weights shape:', weights.shape)
+        print('weights shape before applying point mask:', weights.shape)
 
         weights = pnt_mask * weights
+        print('weights shape after applying point mask:', weights.shape)
         return weights, embedding
 
 
@@ -811,7 +812,7 @@ class PointAggregator(torch.nn.Module):
         # self.print_point(dists, sample_loc_w, sampled_xyz, sample_loc, sampled_xyz_pers, sample_pnt_mask)
 
         weight, sampled_embedding = self.dist_func(sampled_embedding, dists, sample_pnt_mask, vsize, grid_vox_sz, axis_weight=self.axis_weight)
-
+        print('weight shape:', weight.shape)
         if self.opt.agg_weight_norm > 0 and self.opt.agg_distance_kernel != "trilinear" and not self.opt.agg_distance_kernel.startswith("num"):
             weight = weight / torch.clamp(torch.sum(weight, dim=-1, keepdim=True), min=1e-8)
 
