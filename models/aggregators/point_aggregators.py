@@ -422,16 +422,11 @@ class PointAggregator(torch.nn.Module):
     def linear(self, embedding, dists, pnt_mask, vsize, grid_vox_sz, axis_weight=None):
         # dists: B * R * SR * K * channel
         # return B * R * SR * K
-        print('dists shape:', dists.shape)
-        print('pnt mask shape:', pnt_mask.shape)
         if axis_weight is None or (axis_weight[..., 0] == 1 and axis_weight[..., 2] ==1) :
             weights = 1. / torch.clamp(torch.norm(dists[..., :3], dim=-1), min= 1e-6)
         else:
             weights = 1. / torch.clamp(torch.sqrt(torch.sum(torch.square(dists[...,:2]), dim=-1)) * axis_weight[..., 0] + torch.abs(dists[...,2]) * axis_weight[..., 1], min= 1e-6)
-        print('weights shape before applying point mask:', weights.shape)
-
         weights = pnt_mask * weights
-        print('weights shape after applying point mask:', weights.shape)
         return weights, embedding
 
 
@@ -495,7 +490,6 @@ class PointAggregator(torch.nn.Module):
         # print("sampled_Rw2c", sampled_Rw2c.shape, sampled_xyz.shape)
         # assert sampled_Rw2c.dim() == 2
         B, R, SR, K, _ = dists.shape
-        print('B={}, R={}, SR={}, K={}'.format(B, R, SR, K))
         sampled_Rw2c = sampled_Rw2c.transpose(-1, -2)
         uni_w2c = sampled_Rw2c.dim() == 2
         if not uni_w2c:
@@ -539,17 +533,14 @@ class PointAggregator(torch.nn.Module):
                 # print(dists.dtype, (self.opt.dist_xyz_deno * np.linalg.norm(vsize)).dtype, dists_flat.dtype)
                 dists_flat = positional_encoding(dists_flat, self.opt.dist_xyz_freq)
             feat = sampled_embedding.view(-1, sampled_embedding.shape[-1])
-            print('feat1:', feat.shape)
+
 
             if self.opt.apply_pnt_mask > 0:
                 feat = feat[pnt_mask_flat, :]
-                print('feat2:', feat.shape)
 
             if self.opt.num_feat_freqs > 0:
                 feat = torch.cat([feat, positional_encoding(feat, self.opt.num_feat_freqs)], dim=-1)
-                print('feat3:', feat.shape)
             feat = torch.cat([feat, dists_flat], dim=-1)
-            print('feat4:', feat.shape)
             weight = weight.view(B * R * SR, K, 1)
             pts = pts_pnt
 
@@ -559,7 +550,6 @@ class PointAggregator(torch.nn.Module):
             feat = torch.cat([feat, pts], dim=-1)
         # print("feat",feat.shape) # 501
         feat = self.block1(feat)
-        print('feat5:', feat.shape)
         if self.opt.shading_feature_mlp_layer2>0:
             if self.opt.agg_feat_xyz_mode != "None":
                 feat = torch.cat([feat, pts], dim=-1)
@@ -573,7 +563,6 @@ class PointAggregator(torch.nn.Module):
                 if self.opt.apply_pnt_mask > 0:
                     sampled_color = sampled_color[pnt_mask_flat, :]
                 feat = torch.cat([feat, sampled_color], dim=-1)
-                print('feat8:', feat.shape)
             if sampled_dir is not None:
                 sampled_dir = sampled_dir.view(-1, sampled_dir.shape[-1])
                 if self.opt.apply_pnt_mask > 0:
@@ -587,7 +576,6 @@ class PointAggregator(torch.nn.Module):
                 if viewdirs is not None:
                     feat = torch.cat([feat, sampled_dir - ori_viewdirs, torch.sum(sampled_dir*ori_viewdirs, dim=-1, keepdim=True)], dim=-1)
             feat = self.block3(feat)
-            print('feat9:', feat.shape)
         color_in_holder = None
         if self.opt.agg_intrp_order == 1:
 
@@ -645,9 +633,7 @@ class PointAggregator(torch.nn.Module):
             else:
                 feat_holder = feat
             feat = feat_holder.view(B * R * SR, K, feat_holder.shape[-1])
-            print('weight:', weight.shape)
             feat = torch.sum(feat * weight, dim=-2).view([-1, feat.shape[-1]])[ray_valid, :]
-            print('feat10:', feat.shape)
 
             color_in = feat
             if self.opt.agg_color_xyz_mode != "None":
@@ -823,7 +809,6 @@ class PointAggregator(torch.nn.Module):
         # self.print_point(dists, sample_loc_w, sampled_xyz, sample_loc, sampled_xyz_pers, sample_pnt_mask)
 
         weight, sampled_embedding = self.dist_func(sampled_embedding, dists, sample_pnt_mask, vsize, grid_vox_sz, axis_weight=self.axis_weight)
-        print('weight shape:', weight.shape)
         if self.opt.agg_weight_norm > 0 and self.opt.agg_distance_kernel != "trilinear" and not self.opt.agg_distance_kernel.startswith("num"):
             weight = weight / torch.clamp(torch.sum(weight, dim=-1, keepdim=True), min=1e-8)
 
