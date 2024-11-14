@@ -507,13 +507,15 @@ class PointAggregator(torch.nn.Module):
                 pts_pnt = pts[..., None, :].repeat(1, K, 1).view(-1, pts.shape[-1])
                 if self.opt.apply_pnt_mask > 0:
                     pts_pnt=pts_pnt[pnt_mask_flat, :]
-        viewdirs = viewdirs @ sampled_Rw2c if uni_w2c else (viewdirs[..., None, :] @ sampled_Rw2c_ray).squeeze(-2)
+        if viewdirs is not None:
+            viewdirs = viewdirs @ sampled_Rw2c if uni_w2c else (viewdirs[..., None, :] @ sampled_Rw2c_ray).squeeze(-2)
         if self.num_viewdir_freqs > 0:
-            viewdirs = positional_encoding(viewdirs, self.num_viewdir_freqs, ori=True)
-            ori_viewdirs, viewdirs = viewdirs[..., :3], viewdirs[..., 3:]
+            if viewdirs is not None:
+                viewdirs = positional_encoding(viewdirs, self.num_viewdir_freqs, ori=True)
+                ori_viewdirs, viewdirs = viewdirs[..., :3], viewdirs[..., 3:]
 
-
-        viewdirs = viewdirs[ray_valid, :]
+        if viewdirs is not None:
+            viewdirs = viewdirs[ray_valid, :]
 
         if self.opt.agg_intrp_order == 0:
             feat = torch.sum(sampled_embedding * weight[..., None], dim=-2)
@@ -568,10 +570,13 @@ class PointAggregator(torch.nn.Module):
                 if self.opt.apply_pnt_mask > 0:
                     sampled_dir = sampled_dir[pnt_mask_flat, :]
                     sampled_dir = sampled_dir @ sampled_Rw2c if uni_w2c else (sampled_dir[..., None, :] @ sampled_Rw2c).squeeze(-2)
-                ori_viewdirs = ori_viewdirs[..., None, :].repeat(1, K, 1).view(-1, ori_viewdirs.shape[-1])
+                if viewdirs is not None:
+                    ori_viewdirs = ori_viewdirs[..., None, :].repeat(1, K, 1).view(-1, ori_viewdirs.shape[-1])
                 if self.opt.apply_pnt_mask > 0:
-                    ori_viewdirs = ori_viewdirs[pnt_mask_flat, :]
-                feat = torch.cat([feat, sampled_dir - ori_viewdirs, torch.sum(sampled_dir*ori_viewdirs, dim=-1, keepdim=True)], dim=-1)
+                    if viewdirs is not None:
+                        ori_viewdirs = ori_viewdirs[pnt_mask_flat, :]
+                if viewdirs is not None:
+                    feat = torch.cat([feat, sampled_dir - ori_viewdirs, torch.sum(sampled_dir*ori_viewdirs, dim=-1, keepdim=True)], dim=-1)
             feat = self.block3(feat)
         color_in_holder = None
         if self.opt.agg_intrp_order == 1:
@@ -594,8 +599,8 @@ class PointAggregator(torch.nn.Module):
             color_in = feat
             if self.opt.agg_color_xyz_mode != "None":
                 color_in = torch.cat([color_in, pts], dim=-1)
-
-            color_in = torch.cat([color_in, viewdirs], dim=-1)
+            if viewdirs is not None:
+                color_in = torch.cat([color_in, viewdirs], dim=-1)
             color_output = self.raw2out_color(self.color_branch(color_in))
 
             # print("color_output", torch.sum(color_output), color_output.grad)
@@ -636,8 +641,10 @@ class PointAggregator(torch.nn.Module):
             if self.opt.agg_color_xyz_mode != "None":
                 color_in = torch.cat([color_in, pts], dim=-1)
             #copy color_in to color_in_holder
+
+            if viewdirs is not None:
+                color_in = torch.cat([color_in, viewdirs], dim=-1)
             color_in_holder = color_in.clone()
-            color_in = torch.cat([color_in, viewdirs], dim=-1)
             color_output = self.raw2out_color(self.color_branch(color_in))
             # color_output = torch.sigmoid(color_output)
 
