@@ -240,7 +240,7 @@ class PointAggregator(torch.nn.Module):
             self.shcomp = SphericalHarm(opt.sh_degree)
 
         self.opt = opt
-        self.dist_dim = (4 if self.opt.agg_dist_pers == 30 else 6) if self.opt.agg_dist_pers > 9 else 3
+        self.dist_dim = (4 if self.opt.agg_dist_pers == 30 else 6) if self.opt.agg_dist_pers > 9 else 3 # 3
         self.dist_func = getattr(self, opt.agg_distance_kernel, None)
         assert self.dist_func is not None, "InterpAggregator doesn't have disance_kernel {} ".format(opt.agg_distance_kernel)
 
@@ -275,10 +275,11 @@ class PointAggregator(torch.nn.Module):
 
     def viewmlp_init(self, opt, block_init_lst):
 
-        dist_xyz_dim = self.dist_dim if opt.dist_xyz_freq == 0 else 2 * abs(opt.dist_xyz_freq) * self.dist_dim
+        dist_xyz_dim = self.dist_dim if opt.dist_xyz_freq == 0 else 2 * abs(opt.dist_xyz_freq) * self.dist_dim # 2*5*3
         in_channels = opt.point_features_dim + (0 if opt.agg_feat_xyz_mode == "None" else self.pnt_channels) - (opt.weight_feat_dim if opt.agg_distance_kernel in ["feat_intrp", "meta_intrp"] else 0) - (opt.sh_degree ** 2 if opt.agg_distance_kernel == "sh_intrp" else 0) - (7 if opt.agg_distance_kernel == "gau_intrp" else 0)
+        # 32
         in_channels += (2 * opt.num_feat_freqs * in_channels if opt.num_feat_freqs > 0 else 0) + (dist_xyz_dim if opt.agg_intrp_order > 0 else 0)
-
+        # 32 + 2*3*32 + 2*5*3 = 32 + 192 + 30 = 254
         if opt.shading_feature_mlp_layer1 > 0:
             out_channels = opt.shading_feature_num
             block1 = []
@@ -522,8 +523,10 @@ class PointAggregator(torch.nn.Module):
         if self.opt.agg_intrp_order == 0:
             feat = torch.sum(sampled_embedding * weight[..., None], dim=-2)
             feat = feat.view([-1, feat.shape[-1]])[ray_valid, :]
+
             if self.opt.num_feat_freqs > 0:
                 feat = torch.cat([feat, positional_encoding(feat, self.opt.num_feat_freqs)], dim=-1)
+
             pts = pts_ray
         else:
             dists_flat = dists.view(-1, dists.shape[-1])
@@ -536,14 +539,17 @@ class PointAggregator(torch.nn.Module):
                 # print(dists.dtype, (self.opt.dist_xyz_deno * np.linalg.norm(vsize)).dtype, dists_flat.dtype)
                 dists_flat = positional_encoding(dists_flat, self.opt.dist_xyz_freq)
             feat = sampled_embedding.view(-1, sampled_embedding.shape[-1])
-            # print("feat", feat.shape)
+            print('feat1:', feat.shape)
 
             if self.opt.apply_pnt_mask > 0:
                 feat = feat[pnt_mask_flat, :]
+                print('feat2:', feat.shape)
 
             if self.opt.num_feat_freqs > 0:
                 feat = torch.cat([feat, positional_encoding(feat, self.opt.num_feat_freqs)], dim=-1)
+                print('feat3:', feat.shape)
             feat = torch.cat([feat, dists_flat], dim=-1)
+            print('feat4:', feat.shape)
             weight = weight.view(B * R * SR, K, 1)
             pts = pts_pnt
 
@@ -553,13 +559,15 @@ class PointAggregator(torch.nn.Module):
             feat = torch.cat([feat, pts], dim=-1)
         # print("feat",feat.shape) # 501
         feat = self.block1(feat)
-
+        print('feat5:', feat.shape)
         if self.opt.shading_feature_mlp_layer2>0:
             if self.opt.agg_feat_xyz_mode != "None":
                 feat = torch.cat([feat, pts], dim=-1)
             if self.opt.agg_intrp_order > 0:
                 feat = torch.cat([feat, dists_flat], dim=-1)
+                print('feat6:', feat.shape)
             feat = self.block2(feat)
+            print('feat7:', feat.shape)
 
         if self.opt.shading_feature_mlp_layer3>0:
             if sampled_color is not None:
@@ -567,6 +575,7 @@ class PointAggregator(torch.nn.Module):
                 if self.opt.apply_pnt_mask > 0:
                     sampled_color = sampled_color[pnt_mask_flat, :]
                 feat = torch.cat([feat, sampled_color], dim=-1)
+                print('feat8:', feat.shape)
             if sampled_dir is not None:
                 sampled_dir = sampled_dir.view(-1, sampled_dir.shape[-1])
                 if self.opt.apply_pnt_mask > 0:
@@ -580,6 +589,7 @@ class PointAggregator(torch.nn.Module):
                 if viewdirs is not None:
                     feat = torch.cat([feat, sampled_dir - ori_viewdirs, torch.sum(sampled_dir*ori_viewdirs, dim=-1, keepdim=True)], dim=-1)
             feat = self.block3(feat)
+            print('feat9:', feat.shape)
         color_in_holder = None
         if self.opt.agg_intrp_order == 1:
 
@@ -590,6 +600,7 @@ class PointAggregator(torch.nn.Module):
                 feat_holder = feat
             feat = feat_holder.view(B * R * SR, K, feat_holder.shape[-1])
             feat = torch.sum(feat * weight, dim=-2).view([-1, feat.shape[-1]])[ray_valid, :]
+
 
 
             alpha_in = feat
@@ -638,6 +649,7 @@ class PointAggregator(torch.nn.Module):
             feat = feat_holder.view(B * R * SR, K, feat_holder.shape[-1])
             print('weight:', weight.shape)
             feat = torch.sum(feat * weight, dim=-2).view([-1, feat.shape[-1]])[ray_valid, :]
+            print('feat10:', feat.shape)
 
             color_in = feat
             if self.opt.agg_color_xyz_mode != "None":
