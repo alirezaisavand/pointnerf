@@ -810,6 +810,7 @@ class PointAggregator(torch.nn.Module):
         pnt_mask_flat = sample_pnt_mask.view(-1)
         pts = sample_loc_w.view(-1, sample_loc_w.shape[-1])
         # viewdirs = sample_ray_dirs.view(-1, sample_ray_dirs.shape[-1])
+        viewdirs = None
         conf_coefficient = 1
         if sampled_conf is not None:
             conf_coefficient = self.gradiant_clamp(sampled_conf[..., 0], min=0.0001, max=1)
