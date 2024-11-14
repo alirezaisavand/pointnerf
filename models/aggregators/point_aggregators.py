@@ -657,6 +657,7 @@ class PointAggregator(torch.nn.Module):
             if viewdirs is not None:
                 color_in = torch.cat([color_in, viewdirs], dim=-1)
             color_in_holder = color_in.clone()
+            return color_in_holder, None, None
             color_output = self.raw2out_color(self.color_branch(color_in))
             # color_output = torch.sigmoid(color_output)
 
@@ -837,5 +838,6 @@ class PointAggregator(torch.nn.Module):
         color_in, output, _ = getattr(self, self.which_agg_model, None)(sampled_color, sampled_Rw2c, sampled_dir, sampled_conf, sampled_embedding, sampled_xyz_pers, sampled_xyz, sample_pnt_mask, sample_loc, sample_loc_w, sample_ray_dirs, vsize, weight * conf_coefficient, pnt_mask_flat, pts, viewdirs, total_len, ray_valid, in_shape, dists)
         # if (self.opt.sparse_loss_weight <=0) and ("conf_coefficient" not in self.opt.zero_one_loss_items) and self.opt.prob == 0:
         #     weight, conf_coefficient = None, None
-        return color_in, output.view(in_shape[:-1] + (self.opt.shading_color_channel_num + 1,)), ray_valid.view(in_shape[:-1]), weight, conf_coefficient
+        return color_in, None, weight, conf_coefficient
+        # return color_in, output.view(in_shape[:-1] + (self.opt.shading_color_channel_num + 1,)), ray_valid.view(in_shape[:-1]), weight, conf_coefficient
 
