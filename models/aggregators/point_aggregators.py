@@ -421,10 +421,14 @@ class PointAggregator(torch.nn.Module):
     def linear(self, embedding, dists, pnt_mask, vsize, grid_vox_sz, axis_weight=None):
         # dists: B * R * SR * K * channel
         # return B * R * SR * K
+        print('dists shape:', dists.shape)
+        print('pnt mask shape:', pnt_mask.shape)
         if axis_weight is None or (axis_weight[..., 0] == 1 and axis_weight[..., 2] ==1) :
             weights = 1. / torch.clamp(torch.norm(dists[..., :3], dim=-1), min= 1e-6)
         else:
             weights = 1. / torch.clamp(torch.sqrt(torch.sum(torch.square(dists[...,:2]), dim=-1)) * axis_weight[..., 0] + torch.abs(dists[...,2]) * axis_weight[..., 1], min= 1e-6)
+        print('weights shape:', weights.shape)
+
         weights = pnt_mask * weights
         return weights, embedding
 
