@@ -493,6 +493,7 @@ class PointAggregator(torch.nn.Module):
         # print("sampled_Rw2c", sampled_Rw2c.shape, sampled_xyz.shape)
         # assert sampled_Rw2c.dim() == 2
         B, R, SR, K, _ = dists.shape
+        print('B={}, R={}, SR={}, K={}'.format(B, R, SR, K))
         sampled_Rw2c = sampled_Rw2c.transpose(-1, -2)
         uni_w2c = sampled_Rw2c.dim() == 2
         if not uni_w2c:
