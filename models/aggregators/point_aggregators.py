@@ -620,6 +620,8 @@ class PointAggregator(torch.nn.Module):
             else:
                 alpha_holder = alpha
             alpha = alpha_holder.view(B * R * SR, K, alpha_holder.shape[-1])
+            print('alpha shape:', alpha.shape)
+            print('weight shape:', weight.shape)
             alpha = torch.sum(alpha * weight, dim=-2).view([-1, alpha.shape[-1]])[ray_valid, :] # alpha:
 
             # print("alpha", alpha.shape)
