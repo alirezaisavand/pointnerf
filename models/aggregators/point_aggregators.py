@@ -645,7 +645,7 @@ class PointAggregator(torch.nn.Module):
                 color_in = torch.cat([color_in, viewdirs], dim=-1)
             color_in_holder = color_in.clone()
             alpha_in_holder = alpha_in.clone()
-            return color_in_holder, None, None
+            return color_in_holder, None, alpha_in_holder
             color_output = self.raw2out_color(self.color_branch(color_in))
             # color_output = torch.sigmoid(color_output)
 
