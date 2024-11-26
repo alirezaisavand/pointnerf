@@ -655,7 +655,7 @@ class PointAggregator(torch.nn.Module):
             # print("output_placeholder", output_placeholder.shape)
         output_placeholder = torch.zeros([total_len, self.opt.shading_color_channel_num + 1], dtype=torch.float32, device=output.device)
         output_placeholder[ray_valid] = output
-        return color_in_holder, output_placeholder, alpha_in
+        return color_in_holder, output_placeholder, alpha_in_holder
 
     def print_point(self, dists, sample_loc_w, sampled_xyz, sample_loc, sampled_xyz_pers, sample_pnt_mask):
 
