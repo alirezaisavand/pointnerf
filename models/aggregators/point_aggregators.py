@@ -622,7 +622,6 @@ class PointAggregator(torch.nn.Module):
             alpha = alpha_holder.view(B * R * SR, K, alpha_holder.shape[-1])
             alpha = torch.sum(alpha * weight, dim=-2).view([-1, alpha.shape[-1]])[ray_valid, :] # alpha:
 
-            # print("alpha", alpha.shape)
             # alpha_placeholder = torch.zeros([total_len, 1], dtype=torch.float32,
             #                                 device=alpha.device)
             # alpha_placeholder[ray_valid] = alpha
